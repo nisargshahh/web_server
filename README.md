@@ -352,6 +352,9 @@ void HDE::TestServer::responder() {
 ## Real-World Usage Examples
 
 ### 1. Basic Static File Server
+A static file server represents one of the fundamental applications of web server technology. At its core, it maps incoming HTTP requests to a file system hierarchy and serves the requested files back to clients. The implementation requires careful consideration of several critical aspects:
+Security is paramount - the server must implement proper path sanitization to prevent directory traversal attacks where malicious clients might attempt to access files outside the intended directory structure using patterns like "../". Additionally, the server needs to handle concurrent file access efficiently, potentially implementing file caching mechanisms to reduce disk I/O overhead. MIME type detection and proper content-type headers are crucial for browsers to correctly interpret and render the served content. For large files, the server should implement chunked transfer encoding or range requests to support partial content delivery and resume capabilities. Error handling must account for scenarios like missing files, permission issues, and disk I/O failures.
+
 ```cpp
 class FileServer : public HDE::SimpleServer {
 private:
@@ -380,6 +383,9 @@ FileServer server("/var/www/html");
 ```
 
 ### 2. RESTful API Server
+A RESTful API server implements the principles of Representational State Transfer (REST) architecture, providing a stateless, uniform interface for client-server communication. This architectural style is built around resources, which are uniquely identifiable through URIs and can be manipulated through standard HTTP methods (GET, POST, PUT, DELETE, etc.).
+The implementation requires careful consideration of resource modeling, where each endpoint represents a noun rather than a verb (e.g., /api/users instead of /api/getUsers). State management must be handled entirely through the request/response cycle, with no session state maintained on the server. The server must implement proper content negotiation to support different representation formats (JSON, XML, etc.) based on client preferences. Authentication and authorization layers are typically implemented through middleware that processes requests before they reach the resource handlers. Rate limiting and request validation become critical at scale. The server should also implement proper HTTP status code usage (200 for success, 201 for creation, 404 for not found, etc.) and maintain API versioning to ensure backward compatibility as the API evolves.
+
 ```cpp
 class APIServer : public HDE::SimpleServer {
 private:
@@ -415,6 +421,9 @@ api_server.add_route("/api/users", [](Request& req, Response& res) {
 ```
 
 ### 3. WebSocket Chat Server
+A WebSocket server maintains persistent, full-duplex connections with clients, enabling real-time bidirectional communication - a paradigm shift from the traditional request-response model of HTTP. In a chat application, this technology enables immediate message delivery without polling.
+The implementation begins with the WebSocket handshake, where an HTTP connection is upgraded to a WebSocket connection through a specific protocol exchange. The server must maintain a registry of connected clients and their associated WebSocket connections. Message broadcasting requires careful handling of connection state and potential network issues. The server needs to implement ping/pong frame exchanges to detect stale connections and handle connection cleanup appropriately. For scalability, the server might implement pub/sub patterns using message brokers like Redis or RabbitMQ. Security considerations include origin validation, message sanitization, and potential rate limiting of messages. The server should also handle different types of messages (text, binary) and implement proper frame masking as per the WebSocket protocol specification.
+
 ```cpp
 class ChatServer : public HDE::SimpleServer {
 private:
@@ -446,6 +455,9 @@ ChatServer chat;
 ```
 
 ### 4. Load Balancer
+A load balancer serves as a traffic cop for distributed systems, distributing incoming requests across multiple backend servers to ensure optimal resource utilization and high availability. This critical piece of infrastructure requires sophisticated decision-making algorithms and health monitoring capabilities.
+The implementation must consider various load balancing algorithms beyond simple round-robin, such as least connections, weighted round-robin, or even advanced algorithms based on server response times or custom health metrics. Health checking mechanisms must be implemented to detect and remove failing backend servers from the rotation. Session persistence might be required for applications that maintain state, implemented through techniques like IP hashing or cookie-based stickiness. The load balancer should handle connection pooling to minimize the overhead of creating new connections to backend servers. Error handling must account for backend server failures, timeout scenarios, and proper error propagation to clients. Advanced features might include SSL termination, request routing based on URL patterns, and traffic shaping capabilities.
+
 ```cpp
 class LoadBalancer : public HDE::SimpleServer {
 private:
@@ -468,50 +480,12 @@ lb.add_backend("localhost:8081");
 lb.add_backend("localhost:8082");
 ```
 
-### 5. Rate-Limited API Gateway
-```cpp
-class RateLimitedServer : public HDE::SimpleServer {
-private:
-    struct ClientState {
-        int requests;
-        time_t window_start;
-    };
-    std::map<std::string, ClientState> clients;
-    
-    void handler() override {
-        std::string client_ip = get_client_ip();
-        
-        if (is_rate_limited(client_ip)) {
-            send_response(429, "Too Many Requests");
-            return;
-        }
-        
-        // Process request normally
-        process_request();
-    }
-    
-    bool is_rate_limited(const std::string& ip) {
-        auto& state = clients[ip];
-        time_t now = time(nullptr);
-        
-        if (now - state.window_start >= 60) {
-            // Reset window
-            state.requests = 1;
-            state.window_start = now;
-            return false;
-        }
-        
-        return ++state.requests > 100; // 100 requests per minute
-    }
-};
-
-// Usage:
-RateLimitedServer api_gateway;
-```
-
 ## Performance Tuning
 
 ### Buffer Size Optimization
+Buffer management in network programming involves careful balancing of memory usage versus performance. The choice of buffer size has significant implications:
+Small buffers (4-8KB) minimize memory usage per connection but may require more system calls for large transfers. They're ideal for request-response patterns with small payloads. Large buffers (64KB-1MB) reduce system call overhead but consume more memory per connection. They're optimal for file transfers or streaming applications. Dynamic buffer sizing might be implemented based on connection patterns or server load. Memory pooling strategies can be employed to reduce allocation overhead and memory fragmentation.
+
 ```cpp
 // For large file transfers
 char buffer[65536] = {0};  // 64KB buffer
@@ -521,6 +495,9 @@ char buffer[8192] = {0};   // 8KB buffer
 ```
 
 ### Connection Pooling
+Connection pooling optimizes resource usage by maintaining a set of reusable connections, particularly important for database or backend service communication:
+The pool size must be carefully tuned based on available system resources and expected concurrency. Connection validation and refresh strategies prevent the use of stale connections. Timeout policies must be implemented for both idle connections and connection acquisition attempts. The implementation must handle connection leaks through proper tracking and cleanup mechanisms. Advanced implementations might implement priority queuing for critical requests or connection affinity for specific use cases.
+
 ```cpp
 class PooledServer : public HDE::SimpleServer {
 private:
@@ -545,6 +522,9 @@ private:
 ```
 
 ### Multi-threading Support
+Multi-threading in server applications enables concurrent request processing but introduces complexity in resource management and synchronization:
+Thread pool sizing must balance resource usage against request latency. Work distribution strategies must consider CPU affinity and cache coherency. Synchronization mechanisms must be carefully implemented to prevent race conditions while minimizing contention. Resource sharing between threads (like connection pools or caches) must be implemented thread-safely. Advanced implementations might employ work-stealing algorithms or adaptive thread pool sizing based on server load.
+
 ```cpp
 class ThreadedServer : public HDE::SimpleServer {
 private:
@@ -564,6 +544,9 @@ private:
 ## Monitoring and Debugging
 
 ### Request Logging
+A comprehensive logging system is crucial for debugging, audit trails, and performance analysis:
+Structured logging formats enable efficient parsing and analysis. Log levels must be carefully chosen to balance information value against storage costs. Rotation and retention policies prevent disk space issues while maintaining necessary history. Sensitive information must be properly redacted or encrypted. Distributed tracing integration enables request flow visualization across services.
+
 ```cpp
 void log_request(const char* buffer, int bytes_read) {
     std::ofstream log_file("server.log", std::ios::app);
@@ -574,6 +557,9 @@ void log_request(const char* buffer, int bytes_read) {
 ```
 
 ### Performance Metrics
+Metrics provide quantitative insights into server behavior and performance:
+Counter metrics track discrete events like request counts or error rates. Gauge metrics represent point-in-time values like active connections or memory usage. Histogram metrics capture distributions of values like response times. Metric aggregation and storage must consider both precision and resource usage. Alert thresholds should be carefully defined based on business requirements and system capabilities.
+
 ```cpp
 struct ServerMetrics {
     std::atomic<uint64_t> total_requests{0};
