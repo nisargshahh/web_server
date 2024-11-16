@@ -349,6 +349,13 @@ void HDE::TestServer::responder() {
 - Implements proper HTTP headers
 - Handles connection cleanup
 
+![Screenshot from 2024-11-16 13-36-55](https://github.com/user-attachments/assets/17fb6984-8a52-40e4-954d-ee53c023ee05)
+
+![Screenshot from 2024-11-16 13-38-02](https://github.com/user-attachments/assets/6e0cac1f-4ea2-4116-86f2-2f7b87eebce6)
+
+![Screenshot from 2024-11-16 13-38-09](https://github.com/user-attachments/assets/e85f8174-f7b9-4e28-829e-d96f6226e5c0)
+
+
 ## Real-World Usage Examples
 
 ### 1. Basic Static File Server
