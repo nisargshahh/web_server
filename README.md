@@ -1,4 +1,4 @@
-# C++ Web Server Implementation Documentation
+# C++ Web Server Implementation
 
 ## Table of Contents
 1. [Overview](#overview)
